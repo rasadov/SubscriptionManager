@@ -69,7 +69,7 @@ func (s *subscriptionService) UpdateSubscription(ctx context.Context, id int, re
 	}
 
 	if req.EndDate != nil {
-		subscription.EndDate = req.EndDate
+		subscription.EndDate = *req.EndDate
 	}
 
 	if err := s.repo.UpdateSubscription(ctx, id, subscription); err != nil {

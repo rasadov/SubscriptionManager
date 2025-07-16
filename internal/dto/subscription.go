@@ -3,11 +3,11 @@ package dto
 import "github.com/rasadov/subscription-manager/internal/models"
 
 type CreateSubscriptionRequest struct {
-	ServiceName string  `json:"service_name" binding:"required"`
-	Price       int64   `json:"price" binding:"required"`
-	UserID      string  `json:"user_id" binding:"required,uuid"`
-	StartDate   string  `json:"start_date" binding:"required"`
-	EndDate     *string `json:"end_date,omitempty"`
+	ServiceName string `json:"service_name" binding:"required"`
+	Price       int64  `json:"price" binding:"required"`
+	UserID      string `json:"user_id" binding:"required,uuid"`
+	StartDate   string `json:"start_date" binding:"required"`
+	EndDate     string `json:"end_date,omitempty"`
 }
 
 type UpdateSubscriptionRequest struct {
