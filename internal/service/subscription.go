@@ -107,5 +107,5 @@ func (s *subscriptionService) ListSubscriptions(ctx context.Context, query dto.L
 }
 
 func (s *subscriptionService) CalculateTotalCost(ctx context.Context, query dto.TotalCostQuery) (*dto.TotalCostResponse, error) {
-	return nil, nil
+	return s.repo.CalculateTotalCost(ctx, query)
 }

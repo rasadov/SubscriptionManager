@@ -10,11 +10,34 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
+
 	"github.com/rasadov/subscription-manager/internal/config"
+	"github.com/rasadov/subscription-manager/internal/handlers"
+	"github.com/rasadov/subscription-manager/internal/models"
+	"github.com/rasadov/subscription-manager/internal/repository"
+	"github.com/rasadov/subscription-manager/internal/service"
 	"github.com/rasadov/subscription-manager/pkg/database"
 	"github.com/rasadov/subscription-manager/pkg/logger"
+
+	_ "github.com/rasadov/subscription-manager/docs"
 )
 
+// @title Subscription Manager API
+// @version 1.0
+// @description REST API for managing user subscriptions
+// @termsOfService http://swagger.io/terms/
+
+// @contact.name API Support
+// @contact.url http://www.swagger.io/support
+// @contact.email support@swagger.io
+
+// @license.name MIT
+// @license.url https://opensource.org/licenses/MIT
+
+// @host localhost:8080
+// @BasePath /api/v1
 func main() {
 	cfg, err := config.Load()
 	if err != nil {
@@ -40,9 +63,52 @@ func main() {
 
 	log.Info("Database connected successfully")
 
+	// Run migrations
+	err = db.AutoMigrate(&models.Subscription{})
+	if err != nil {
+		log.Error("Failed to run migrations", "error", err)
+		os.Exit(1)
+	}
+	log.Info("Database migrations completed")
+
+	// Initialize repository, service and handlers
+	subscriptionRepo := repository.NewSubscriptionRepositiry(db)
+	subscriptionService := service.NewSubscriptionService(subscriptionRepo)
+	subscriptionHandler := handlers.NewSubscriptionHandler(subscriptionService, log)
+
+	// Setup Gin router
+	if cfg.Server.Host == "release" {
+		gin.SetMode(gin.ReleaseMode)
+	}
+
 	router := gin.New()
 	router.Use(gin.Logger())
 	router.Use(gin.Recovery())
+
+	// Setup API routes
+	api := router.Group("/api/v1")
+	{
+		subscriptions := api.Group("/subscriptions")
+		{
+			subscriptions.POST("", subscriptionHandler.CreateSubscription)
+			subscriptions.GET("", subscriptionHandler.ListSubscriptions)
+			subscriptions.GET("/:id", subscriptionHandler.GetSubscription)
+			subscriptions.PUT("/:id", subscriptionHandler.UpdateSubscription)
+			subscriptions.DELETE("/:id", subscriptionHandler.DeleteSubscription)
+			subscriptions.GET("/total-cost", subscriptionHandler.CalculateTotalCost)
+		}
+	}
+
+	// Setup Swagger documentation
+	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+
+	// Health check endpoint
+	router.GET("/health", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{
+			"status":    "healthy",
+			"timestamp": time.Now().UTC(),
+		})
+	})
 
 	server := &http.Server{
 		Addr:    fmt.Sprintf(":%d", cfg.Server.Port),
@@ -50,7 +116,7 @@ func main() {
 	}
 
 	go func() {
-		log.Info("Server starting", "port", cfg.Server.Port)
+		log.Info("Server starting", "port", cfg.Server.Port, "swagger_url", fmt.Sprintf("http://localhost:%d/swagger/index.html", cfg.Server.Port))
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Error("Failed to start server", "error", err)
 			os.Exit(1)
