@@ -36,12 +36,12 @@ func Load() (*Config, error) {
 			Host: getEnvString("SERVER_HOST", "localhost"),
 		},
 		Database: DatabaseConfig{
-			Host:     getEnvString("DB_HOST", "localhost"),
-			Port:     getEnvInt("DB_PORT", 5432),
-			User:     getEnvString("DB_USER", "postgres"),
-			Password: getEnvString("DB_PASSWORD", "password"),
-			DBName:   getEnvString("DB_NAME", "subscriptions"),
-			SSLMode:  getEnvString("DB_SSLMODE", "disable"),
+			Host:     getEnvString("POSTGRES_HOST", "localhost"),
+			Port:     getEnvInt("POSTGRES_PORT", 5432),
+			User:     getEnvString("POSTGRES_USER", "postgres"),
+			Password: getEnvString("POSTGRES_PASSWORD", "password"),
+			DBName:   getEnvString("POSTGRES_DB", "subscriptions"),
+			SSLMode:  getEnvString("POSTGRES_SSLMODE", "disable"),
 		},
 		Log: LogConfig{
 			Level: getEnvString("LOG_LEVEL", "info"),
