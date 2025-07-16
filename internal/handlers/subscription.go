@@ -35,6 +35,7 @@ func (h *SubscriptionHandler) CreateSubscription(c *gin.Context) {
 		return
 	}
 
+	h.logger.Info("Subscription created successfully", "id", response.ID)
 	c.JSON(http.StatusCreated, response)
 }
 
@@ -54,6 +55,7 @@ func (h *SubscriptionHandler) GetSubscription(c *gin.Context) {
 		return
 	}
 
+	h.logger.Info("Subscription retrieved successfully", "id", id)
 	c.JSON(http.StatusOK, response)
 }
 
@@ -80,6 +82,7 @@ func (h *SubscriptionHandler) UpdateSubscription(c *gin.Context) {
 		return
 	}
 
+	h.logger.Info("Subscription updated successfully", "id", id)
 	c.JSON(http.StatusOK, response)
 }
 
@@ -99,6 +102,7 @@ func (h *SubscriptionHandler) DeleteSubscription(c *gin.Context) {
 		return
 	}
 
+	h.logger.Info("Subscription deleted successfully", "id", id)
 	c.JSON(http.StatusNoContent, nil)
 }
 
@@ -117,6 +121,7 @@ func (h *SubscriptionHandler) ListSubscriptions(c *gin.Context) {
 		return
 	}
 
+	h.logger.Info("Subscriptions listed successfully", "count", response.Pagination.Total)
 	c.JSON(http.StatusOK, response)
 }
 
@@ -135,5 +140,6 @@ func (h *SubscriptionHandler) CalculateTotalCost(c *gin.Context) {
 		return
 	}
 
+	h.logger.Info("Total cost calculated successfully", "total_cost", response.TotalCost)
 	c.JSON(http.StatusOK, response)
 }

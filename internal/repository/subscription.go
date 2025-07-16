@@ -13,7 +13,7 @@ type SubscriptionRepository interface {
 	GetSubscription(ctx context.Context, id int) (*models.Subscription, error)
 	UpdateSubscription(ctx context.Context, id int, subscription *models.Subscription) error
 	DeleteSubscription(ctx context.Context, id int) error
-	ListSubscriptions(ctx context.Context, query dto.ListSubscriptionsQuery) ([]models.Subscription, error)
+	ListSubscriptions(ctx context.Context, query dto.ListSubscriptionsQuery) (subscriptions []*models.Subscription, total int64, err error)
 	CalculateTotalCost(ctx context.Context, query dto.TotalCostQuery) (*dto.TotalCostResponse, error)
 }
 
@@ -48,10 +48,85 @@ func (s *subscriptionRepository) DeleteSubscription(ctx context.Context, id int)
 	return s.db.WithContext(ctx).Delete(&models.Subscription{}, id).Error
 }
 
-func (s *subscriptionRepository) ListSubscriptions(ctx context.Context, query dto.ListSubscriptionsQuery) ([]models.Subscription, error) {
-	return nil, nil
+func (s *subscriptionRepository) ListSubscriptions(ctx context.Context, query dto.ListSubscriptionsQuery) (subscriptions []*models.Subscription, total int64, err error) {
+	db := s.db.WithContext(ctx)
+
+	if query.UserID != nil {
+		db = db.Where("user_id = ?", *query.UserID)
+	}
+	if query.ServiceName != nil {
+		db = db.Where("service_name = ?", *query.ServiceName)
+	}
+	if query.StartDateFrom != nil {
+		db = db.Where("start_date >= ?", *query.StartDateFrom)
+	}
+	if query.EndDateFrom != nil {
+		db = db.Where("end_date >= ?", *query.EndDateFrom)
+	}
+	if query.EndDateTo != nil {
+		db = db.Where("end_date <= ?", *query.EndDateTo)
+	}
+
+	// Sorting
+	sortBy := "created_at"
+	if query.SortBy != nil && *query.SortBy != "" {
+		sortBy = *query.SortBy
+	}
+	sortOrder := "desc"
+	if query.SortOrder != nil && (*query.SortOrder == "asc" || *query.SortOrder == "desc") {
+		sortOrder = *query.SortOrder
+	}
+	db = db.Order(sortBy + " " + sortOrder)
+
+	// Pagination
+	limit := 10
+	if query.Limit > 0 {
+		limit = int(query.Limit)
+	}
+	page := 1
+	if query.Page > 0 {
+		page = int(query.Page)
+	}
+	offset := (page - 1) * limit
+	db = db.Limit(limit).Offset(offset)
+
+	if err := db.Find(&subscriptions).Error; err != nil {
+		return nil, 0, err
+	}
+
+	if err := db.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	return subscriptions, total, nil
 }
 
 func (s *subscriptionRepository) CalculateTotalCost(ctx context.Context, query dto.TotalCostQuery) (*dto.TotalCostResponse, error) {
-	return nil, nil
+	var totalCost int64
+	db := s.db.WithContext(ctx)
+
+	if query.UserID != nil {
+		db = db.Where("user_id = ?", *query.UserID)
+	}
+	if query.ServiceName != nil {
+		db = db.Where("service_name = ?", *query.ServiceName)
+	}
+	if query.StartDate != nil {
+		db = db.Where("start_date = ?", *query.StartDate)
+	}
+	if query.EndDate != nil {
+		db = db.Where("end_date = ?", *query.EndDate)
+	}
+
+	if err := db.Select("SUM(price) as total_cost").Find(&totalCost).Error; err != nil {
+		return nil, err
+	}
+
+	return &dto.TotalCostResponse{
+		TotalCost: totalCost,
+		Period: &dto.Period{
+			StartDate: query.StartDate,
+			EndDate:   query.EndDate,
+		},
+	}, nil
 }

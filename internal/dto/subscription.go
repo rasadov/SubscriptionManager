@@ -1,9 +1,10 @@
 package dto
 
-// Request DTOs
+import "github.com/rasadov/subscription-manager/internal/models"
+
 type CreateSubscriptionRequest struct {
 	ServiceName string  `json:"service_name" binding:"required"`
-	Price       int     `json:"price" binding:"required"`
+	Price       int64   `json:"price" binding:"required"`
 	UserID      string  `json:"user_id" binding:"required,uuid"`
 	StartDate   string  `json:"start_date" binding:"required"`
 	EndDate     *string `json:"end_date,omitempty"`
@@ -11,51 +12,48 @@ type CreateSubscriptionRequest struct {
 
 type UpdateSubscriptionRequest struct {
 	ServiceName *string `json:"service_name,omitempty"`
-	Price       *int    `json:"price,omitempty"`
+	Price       *int64  `json:"price,omitempty"`
 	StartDate   *string `json:"start_date,omitempty"`
 	EndDate     *string `json:"end_date,omitempty"`
 }
 
 type ListSubscriptionsQuery struct {
-	UserID      string `form:"user_id"`
-	ServiceName string `form:"service_name"`
-	Page        int    `form:"page,default=1"`
-	Limit       int    `form:"limit,default=10"`
+	UserID        *string `form:"user_id"`
+	ServiceName   *string `form:"service_name"`
+	Page          int64   `form:"page,default=1"`
+	Limit         int64   `form:"limit,default=10"`
+	StartDateFrom *string `form:"start_date_from"`
+	EndDateFrom   *string `form:"end_date_from"`
+	EndDateTo     *string `form:"end_date_to"`
+	SortBy        *string `form:"sort_by"`
+	SortOrder     *string `form:"sort_order"`
+}
+
+type Period struct {
+	StartDate *string `json:"start_date"`
+	EndDate   *string `json:"end_date"`
+}
+
+type Pagination struct {
+	Page       int64 `json:"page"`
+	Limit      int64 `json:"limit"`
+	Total      int64 `json:"total"`
+	TotalPages int64 `json:"total_pages"`
 }
 
 type TotalCostQuery struct {
-	UserID      string `form:"user_id"`
-	ServiceName string `form:"service_name"`
-	StartDate   string `form:"start_date" binding:"required"`
-	EndDate     string `form:"end_date" binding:"required"`
-}
-
-// Response DTOs
-type SubscriptionResponse struct {
-	ID          int     `json:"id"`
-	ServiceName string  `json:"service_name"`
-	Price       int     `json:"price"`
-	UserID      string  `json:"user_id"`
-	StartDate   string  `json:"start_date"`
-	EndDate     *string `json:"end_date,omitempty"`
-	CreatedAt   string  `json:"created_at"`
-	UpdatedAt   string  `json:"updated_at"`
+	UserID      *string `form:"user_id"`
+	ServiceName *string `form:"service_name"`
+	StartDate   *string `form:"start_date" binding:"required"`
+	EndDate     *string `form:"end_date" binding:"required"`
 }
 
 type TotalCostResponse struct {
-	TotalCost int `json:"total_cost"`
-	Period    struct {
-		StartDate string `json:"start_date"`
-		EndDate   string `json:"end_date"`
-	} `json:"period"`
+	TotalCost int64 `json:"total_cost"`
+	Period    *Period
 }
 
 type ListSubscriptionsResponse struct {
-	Data       []SubscriptionResponse `json:"data"`
-	Pagination struct {
-		Page       int `json:"page"`
-		Limit      int `json:"limit"`
-		Total      int `json:"total"`
-		TotalPages int `json:"total_pages"`
-	} `json:"pagination"`
+	Data       []*models.Subscription `json:"data"`
+	Pagination *Pagination            `json:"pagination"`
 }
