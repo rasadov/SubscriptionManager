@@ -12,6 +12,16 @@ import (
 type mockSubscriptionRepository struct {
 }
 
+var (
+	subscriptions = []*models.Subscription{
+		getMockSubscription(1),
+		getMockSubscription(2),
+		getMockSubscription(3),
+		getMockSubscription(4),
+		getMockSubscription(5),
+	}
+)
+
 func NewMockSubscriptionRepository() repository.SubscriptionRepository {
 	return &mockSubscriptionRepository{}
 }
@@ -35,13 +45,11 @@ func (m *mockSubscriptionRepository) CreateSubscription(ctx context.Context, sub
 }
 
 func (m *mockSubscriptionRepository) GetSubscription(ctx context.Context, id int) (*models.Subscription, error) {
-	subscription := getMockSubscription(uint(id))
+	subscription := subscriptions[id-1]
 	return subscription, nil
 }
 
 func (m *mockSubscriptionRepository) UpdateSubscription(ctx context.Context, id int, subscription *models.Subscription) error {
-	subscription.ID = uint(id)
-	subscription.CreatedAt = time.Now()
 	subscription.UpdatedAt = time.Now()
 	return nil
 }
@@ -51,9 +59,6 @@ func (m *mockSubscriptionRepository) DeleteSubscription(ctx context.Context, id 
 }
 
 func (m *mockSubscriptionRepository) ListSubscriptions(ctx context.Context, query dto.ListSubscriptionsQuery) (subscriptions []*models.Subscription, total int64, err error) {
-	for i := 1; i <= 5; i++ {
-		subscriptions = append(subscriptions, getMockSubscription(uint(i)))
-	}
 	return subscriptions, 5, nil
 }
 

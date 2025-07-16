@@ -84,6 +84,12 @@ func (s *subscriptionService) DeleteSubscription(ctx context.Context, id int) er
 }
 
 func (s *subscriptionService) ListSubscriptions(ctx context.Context, query dto.ListSubscriptionsQuery) (*dto.ListSubscriptionsResponse, error) {
+	if query.Page == 0 {
+		query.Page = 1
+	}
+	if query.Limit == 0 {
+		query.Limit = 10
+	}
 	subscriptions, total, err := s.repo.ListSubscriptions(ctx, query)
 	if err != nil {
 		return nil, err

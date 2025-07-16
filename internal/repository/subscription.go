@@ -37,6 +37,10 @@ func (s *subscriptionRepository) GetSubscription(ctx context.Context, id int) (*
 		return nil, res.Error
 	}
 
+	if res.RowsAffected == 0 {
+		return nil, gorm.ErrRecordNotFound
+	}
+
 	return &subscription, nil
 }
 
@@ -103,7 +107,7 @@ func (s *subscriptionRepository) ListSubscriptions(ctx context.Context, query dt
 
 func (s *subscriptionRepository) CalculateTotalCost(ctx context.Context, query dto.TotalCostQuery) (*dto.TotalCostResponse, error) {
 	var totalCost int64
-	db := s.db.WithContext(ctx)
+	db := s.db.WithContext(ctx).Model(&models.Subscription{})
 
 	if query.UserID != nil {
 		db = db.Where("user_id = ?", *query.UserID)

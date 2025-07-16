@@ -34,6 +34,15 @@ func Close(db *gorm.DB) error {
 	return sqlDB.Close()
 }
 
-func Cleanup(db *gorm.DB) error {
-	return db.Migrator().DropTable(&models.Subscription{})
+func ResetDB(db *gorm.DB) error {
+	log.Println("Resetting test database...")
+	if db == nil {
+		return nil
+	}
+	err := db.Migrator().DropTable(&models.Subscription{})
+	if err != nil {
+		return err
+	}
+	err = db.AutoMigrate(&models.Subscription{})
+	return err
 }
