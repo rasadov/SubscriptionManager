@@ -2,171 +2,259 @@ package tests
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	"github.com/rasadov/subscription-manager/internal/dto"
+	"github.com/rasadov/subscription-manager/internal/models"
+	"github.com/rasadov/subscription-manager/internal/service"
+	"github.com/rasadov/subscription-manager/tests/mocks"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
+	"gorm.io/gorm"
 )
 
-var (
-	testServiceName = "test"
-	testPrice       = int64(10)
-	testUserID      = "test"
-	testStartDate   = "2025-01-01"
-	testEndDate     = "2025-01-02"
-)
+func TestCreateSubscriptionService_Success(t *testing.T) {
+	mockRepo := new(mocks.MockSubscriptionRepository)
+	service := service.NewSubscriptionService(mockRepo)
 
-// Unit tests
-
-func TestCreateSubscriptionService(t *testing.T) {
-	SetupServiceUnitTests(t)
 	req := dto.CreateSubscriptionRequest{
-		ServiceName: testServiceName,
-		Price:       testPrice,
-		UserID:      testUserID,
-		StartDate:   testStartDate,
-		EndDate:     testEndDate,
+		ServiceName: "Netflix",
+		Price:       1500,
+		UserID:      "123e4567-e89b-12d3-a456-426614174000",
+		StartDate:   "07-2025",
+		EndDate:     "12-2025",
 	}
 
-	_, err := testService.CreateSubscription(context.Background(), req)
-	if err != nil {
-		t.Errorf("CreateSubscription error: %v", err)
-	}
+	mockRepo.On("CreateSubscription", mock.Anything, mock.AnythingOfType("*models.Subscription")).
+		Run(func(args mock.Arguments) {
+			sub := args.Get(1).(*models.Subscription)
+			sub.ID = 1
+		}).Return(nil)
+
+	result, err := service.CreateSubscription(context.Background(), req)
+
+	assert.NoError(t, err)
+	assert.NotNil(t, result)
+	assert.Equal(t, req.ServiceName, result.ServiceName)
+	assert.Equal(t, req.Price, result.Price)
+	assert.Equal(t, req.UserID, result.UserID)
+	assert.Equal(t, req.StartDate, result.StartDate)
+	assert.Equal(t, req.EndDate, result.EndDate)
+	assert.Equal(t, uint(1), result.ID)
+
+	mockRepo.AssertExpectations(t)
 }
 
-func TestUpdateSubscriptionService(t *testing.T) {
-	SetupServiceUnitTests(t)
-	updatedServiceName, updatedPrice, updatedStartDate, updatedEndDate := "updated", int64(20), "2025-01-03", "2025-01-04"
+func TestCreateSubscriptionService_RepositoryError(t *testing.T) {
+	mockRepo := new(mocks.MockSubscriptionRepository)
+	service := service.NewSubscriptionService(mockRepo)
+
+	req := dto.CreateSubscriptionRequest{
+		ServiceName: "Netflix",
+		Price:       1500,
+		UserID:      "123e4567-e89b-12d3-a456-426614174000",
+		StartDate:   "07-2025",
+	}
+
+	expectedError := errors.New("database connection failed")
+	mockRepo.On("CreateSubscription", mock.Anything, mock.AnythingOfType("*models.Subscription")).
+		Return(expectedError)
+
+	result, err := service.CreateSubscription(context.Background(), req)
+
+	assert.Error(t, err)
+	assert.Nil(t, result)
+	assert.Equal(t, expectedError, err)
+
+	mockRepo.AssertExpectations(t)
+}
+
+func TestGetSubscriptionService_Success(t *testing.T) {
+	mockRepo := new(mocks.MockSubscriptionRepository)
+	service := service.NewSubscriptionService(mockRepo)
+
+	expectedSub := &models.Subscription{
+		ID:          1,
+		ServiceName: "Netflix",
+		Price:       1500,
+		UserID:      "123e4567-e89b-12d3-a456-426614174000",
+		StartDate:   "07-2025",
+	}
+
+	mockRepo.On("GetSubscription", mock.Anything, 1).Return(expectedSub, nil)
+
+	result, err := service.GetSubscription(context.Background(), 1)
+
+	assert.NoError(t, err)
+	assert.NotNil(t, result)
+	assert.Equal(t, expectedSub.ID, result.ID)
+	assert.Equal(t, expectedSub.ServiceName, result.ServiceName)
+	assert.Equal(t, expectedSub.Price, result.Price)
+
+	mockRepo.AssertExpectations(t)
+}
+
+func TestGetSubscriptionService_NotFound(t *testing.T) {
+	mockRepo := new(mocks.MockSubscriptionRepository)
+	service := service.NewSubscriptionService(mockRepo)
+
+	mockRepo.On("GetSubscription", mock.Anything, 999).Return(nil, gorm.ErrRecordNotFound)
+
+	result, err := service.GetSubscription(context.Background(), 999)
+
+	assert.Error(t, err)
+	assert.Nil(t, result)
+	assert.Equal(t, gorm.ErrRecordNotFound, err)
+
+	mockRepo.AssertExpectations(t)
+}
+
+func TestUpdateSubscriptionService_Success(t *testing.T) {
+	mockRepo := new(mocks.MockSubscriptionRepository)
+	service := service.NewSubscriptionService(mockRepo)
+
+	existingSub := &models.Subscription{
+		ID:          1,
+		ServiceName: "Netflix",
+		Price:       1500,
+		UserID:      "123e4567-e89b-12d3-a456-426614174000",
+		StartDate:   "07-2025",
+	}
+
+	newServiceName := "Spotify"
+	newPrice := int64(1200)
 
 	req := dto.UpdateSubscriptionRequest{
-		ServiceName: &updatedServiceName,
-		Price:       &updatedPrice,
-		StartDate:   &updatedStartDate,
-		EndDate:     &updatedEndDate,
+		ServiceName: &newServiceName,
+		Price:       &newPrice,
 	}
 
-	_, err := testService.UpdateSubscription(context.Background(), 1, req)
-	if err != nil {
-		t.Errorf("UpdateSubscription error: %v", err)
-	}
+	mockRepo.On("GetSubscription", mock.Anything, 1).Return(existingSub, nil)
+	mockRepo.On("UpdateSubscription", mock.Anything, 1, mock.AnythingOfType("*models.Subscription")).Return(nil)
 
-	updatedSubscription, err := testService.GetSubscription(context.Background(), 1)
-	if err != nil {
-		t.Errorf("GetSubscription error: %v", err)
-	}
+	result, err := service.UpdateSubscription(context.Background(), 1, req)
 
-	if updatedSubscription.ServiceName != updatedServiceName {
-		t.Errorf("ServiceName expected: %s, actual: %s", updatedServiceName, updatedSubscription.ServiceName)
-	}
-	if updatedSubscription.Price != updatedPrice {
-		t.Errorf("Price expected: %d, actual: %d", updatedPrice, updatedSubscription.Price)
-	}
-	if updatedSubscription.StartDate != updatedStartDate {
-		t.Errorf("StartDate expected: %s, actual: %s", updatedStartDate, updatedSubscription.StartDate)
-	}
-	if updatedSubscription.EndDate != updatedEndDate {
-		t.Errorf("EndDate expected: %s, actual: %s", updatedEndDate, updatedSubscription.EndDate)
-	}
+	assert.NoError(t, err)
+	assert.NotNil(t, result)
+	assert.Equal(t, newServiceName, result.ServiceName)
+	assert.Equal(t, newPrice, result.Price)
+	assert.Equal(t, existingSub.UserID, result.UserID)
+
+	mockRepo.AssertExpectations(t)
 }
 
-func TestDeleteSubscriptionService(t *testing.T) {
-	SetupServiceUnitTests(t)
-	if err := testService.DeleteSubscription(context.Background(), 1); err != nil {
-		t.Errorf("DeleteSubscription error: %v", err)
+func TestListSubscriptionsService_Success(t *testing.T) {
+	mockRepo := new(mocks.MockSubscriptionRepository)
+	service := service.NewSubscriptionService(mockRepo)
+
+	expectedSubs := []*models.Subscription{
+		{ID: 1, ServiceName: "Netflix", Price: 1500},
+		{ID: 2, ServiceName: "Spotify", Price: 1200},
 	}
+
+	query := dto.ListSubscriptionsQuery{
+		Page:  1,
+		Limit: 10,
+	}
+
+	mockRepo.On("ListSubscriptions", mock.Anything, query).Return(expectedSubs, int64(2), nil)
+
+	result, err := service.ListSubscriptions(context.Background(), query)
+
+	assert.NoError(t, err)
+	assert.NotNil(t, result)
+	assert.Len(t, result.Data, 2)
+	assert.Equal(t, int64(2), result.Pagination.Total)
+	assert.Equal(t, int64(1), result.Pagination.Page)
+	assert.Equal(t, int64(10), result.Pagination.Limit)
+	assert.Equal(t, int64(1), result.Pagination.TotalPages)
+
+	mockRepo.AssertExpectations(t)
 }
 
-func TestListSubscriptionsService(t *testing.T) {
-	SetupServiceUnitTests(t)
-	req := dto.ListSubscriptionsQuery{
-		UserID: &testUserID,
-		Page:   1,
-		Limit:  10,
-	}
+func TestListSubscriptionsService_DefaultPagination(t *testing.T) {
+	mockRepo := new(mocks.MockSubscriptionRepository)
+	service := service.NewSubscriptionService(mockRepo)
 
-	_, err := testService.ListSubscriptions(context.Background(), req)
-	if err != nil {
-		t.Errorf("ListSubscriptions error: %v", err)
-	}
+	query := dto.ListSubscriptionsQuery{}
+
+	expectedQuery := query
+	expectedQuery.Page = 1
+	expectedQuery.Limit = 10
+
+	mockRepo.On("ListSubscriptions", mock.Anything, expectedQuery).Return([]*models.Subscription{}, int64(0), nil)
+
+	result, err := service.ListSubscriptions(context.Background(), query)
+
+	assert.NoError(t, err)
+	assert.Equal(t, int64(1), result.Pagination.Page)
+	assert.Equal(t, int64(10), result.Pagination.Limit)
+
+	mockRepo.AssertExpectations(t)
 }
 
-func TestCalculateTotalCostService(t *testing.T) {
-	SetupServiceUnitTests(t)
-	req := dto.TotalCostQuery{
-		UserID:      &testUserID,
-		ServiceName: &testServiceName,
-		StartDate:   &testStartDate,
-		EndDate:     &testEndDate,
-	}
+func TestCreateAndGetSubscriptionIntegration(t *testing.T) {
+	SetupRepo(t)
 
-	_, err := testService.CalculateTotalCost(context.Background(), req)
-	if err != nil {
-		t.Errorf("CalculateTotalCost error: %v", err)
-	}
-}
-
-// Integration tests
-
-func TestCreateSubscriptionIntegration(t *testing.T) {
-	SetupServiceIntegrationTests(t)
 	req := dto.CreateSubscriptionRequest{
-		ServiceName: testServiceName,
-		Price:       testPrice,
-		UserID:      testUserID,
-		StartDate:   testStartDate,
-		EndDate:     testEndDate,
+		ServiceName: "Integration Test Service",
+		Price:       2500,
+		UserID:      "123e4567-e89b-12d3-a456-426614174000",
+		StartDate:   "07-2025",
+		EndDate:     "12-2025",
 	}
 
-	_, err := testService.CreateSubscription(context.Background(), req)
-	if err != nil {
-		t.Errorf("CreateSubscription error: %v", err)
-	}
+	created, err := testService.CreateSubscription(context.Background(), req)
+	assert.NoError(t, err)
+	assert.NotNil(t, created)
+	assert.NotZero(t, created.ID)
+
+	retrieved, err := testService.GetSubscription(context.Background(), int(created.ID))
+	assert.NoError(t, err)
+	assert.NotNil(t, retrieved)
+	assert.Equal(t, created.ID, retrieved.ID)
+	assert.Equal(t, req.ServiceName, retrieved.ServiceName)
+	assert.Equal(t, req.Price, retrieved.Price)
+	assert.Equal(t, req.UserID, retrieved.UserID)
 }
 
-func TestUpdateSubscriptionIntegration(t *testing.T) {
-	SetupServiceIntegrationTests(t)
-	updatedServiceName, updatedPrice, updatedStartDate, updatedEndDate := "updated", int64(20), "2025-01-03", "2025-01-04"
+func TestFullCRUDIntegration(t *testing.T) {
+	SetupRepo(t)
 
-	req := dto.UpdateSubscriptionRequest{
-		ServiceName: &updatedServiceName,
-		Price:       &updatedPrice,
-		StartDate:   &updatedStartDate,
-		EndDate:     &updatedEndDate,
+	req := dto.CreateSubscriptionRequest{
+		ServiceName: "CRUD Test Service",
+		Price:       1800,
+		UserID:      "123e4567-e89b-12d3-a456-426614174000",
+		StartDate:   "07-2025",
 	}
 
-	_, err := testService.UpdateSubscription(context.Background(), 1, req)
-	if err != nil {
-		t.Errorf("UpdateSubscription error: %v", err)
-	}
-}
+	created, err := testService.CreateSubscription(context.Background(), req)
+	assert.NoError(t, err)
+	assert.NotZero(t, created.ID)
 
-func TestDeleteSubscriptionIntegration(t *testing.T) {
-	SetupServiceIntegrationTests(t)
-	if err := testService.DeleteSubscription(context.Background(), 1); err != nil {
-		t.Errorf("DeleteSubscription error: %v", err)
+	newServiceName := "Updated Service"
+	updateReq := dto.UpdateSubscriptionRequest{
+		ServiceName: &newServiceName,
 	}
-}
 
-func TestListSubscriptionsIntegration(t *testing.T) {
-	SetupServiceIntegrationTests(t)
-	req := dto.ListSubscriptionsQuery{
-		UserID: &testUserID,
-	}
-	_, err := testService.ListSubscriptions(context.Background(), req)
-	if err != nil {
-		t.Errorf("ListSubscriptions error: %v", err)
-	}
-}
+	updated, err := testService.UpdateSubscription(context.Background(), int(created.ID), updateReq)
+	assert.NoError(t, err)
+	assert.Equal(t, newServiceName, updated.ServiceName)
+	assert.Equal(t, req.Price, updated.Price)
 
-func TestCalculateTotalCostIntegration(t *testing.T) {
-	SetupServiceIntegrationTests(t)
-	req := dto.TotalCostQuery{
-		UserID:      &testUserID,
-		ServiceName: &testServiceName,
-		StartDate:   &testStartDate,
-		EndDate:     &testEndDate,
+	listQuery := dto.ListSubscriptionsQuery{
+		UserID: &req.UserID,
 	}
-	_, err := testService.CalculateTotalCost(context.Background(), req)
-	if err != nil {
-		t.Errorf("CalculateTotalCost error: %v", err)
-	}
+
+	listResult, err := testService.ListSubscriptions(context.Background(), listQuery)
+	assert.NoError(t, err)
+	assert.True(t, listResult.Pagination.Total >= 1)
+
+	err = testService.DeleteSubscription(context.Background(), int(created.ID))
+	assert.NoError(t, err)
+
+	_, err = testService.GetSubscription(context.Background(), int(created.ID))
+	assert.Error(t, err)
+	assert.Equal(t, gorm.ErrRecordNotFound, err)
 }

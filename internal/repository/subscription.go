@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"database/sql"
 
 	"github.com/rasadov/subscription-manager/internal/dto"
 	"github.com/rasadov/subscription-manager/internal/models"
@@ -55,6 +56,10 @@ func (s *subscriptionRepository) DeleteSubscription(ctx context.Context, id int)
 func (s *subscriptionRepository) ListSubscriptions(ctx context.Context, query dto.ListSubscriptionsQuery) (subscriptions []*models.Subscription, total int64, err error) {
 	db := s.db.WithContext(ctx)
 
+	if err := db.Model(&models.Subscription{}).Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
 	if query.UserID != nil {
 		db = db.Where("user_id = ?", *query.UserID)
 	}
@@ -98,15 +103,12 @@ func (s *subscriptionRepository) ListSubscriptions(ctx context.Context, query dt
 		return nil, 0, err
 	}
 
-	if err := db.Count(&total).Error; err != nil {
-		return nil, 0, err
-	}
-
 	return subscriptions, total, nil
 }
 
 func (s *subscriptionRepository) CalculateTotalCost(ctx context.Context, query dto.TotalCostQuery) (*dto.TotalCostResponse, error) {
 	var totalCost int64
+
 	db := s.db.WithContext(ctx).Model(&models.Subscription{})
 
 	if query.UserID != nil {
@@ -116,14 +118,19 @@ func (s *subscriptionRepository) CalculateTotalCost(ctx context.Context, query d
 		db = db.Where("service_name = ?", *query.ServiceName)
 	}
 	if query.StartDate != nil {
-		db = db.Where("start_date = ?", *query.StartDate)
+		db = db.Where("start_date >= ?", *query.StartDate)
 	}
 	if query.EndDate != nil {
-		db = db.Where("end_date = ?", *query.EndDate)
+		db = db.Where("end_date <= ?", *query.EndDate)
 	}
 
-	if err := db.Select("SUM(price) as total_cost").Find(&totalCost).Error; err != nil {
+	var totalCostNull sql.NullInt64
+	if err := db.Select("SUM(price) as total_cost").Scan(&totalCostNull).Error; err != nil {
 		return nil, err
+	}
+	totalCost = int64(0)
+	if totalCostNull.Valid {
+		totalCost = totalCostNull.Int64
 	}
 
 	return &dto.TotalCostResponse{

@@ -19,7 +19,6 @@ var (
 func TestMain(m *testing.M) {
 	db = mocks.NewTestDB()
 	testRepository = repository.NewSubscriptionRepositiry(db)
-	testService = service.NewSubscriptionService(mocks.NewMockSubscriptionRepository())
 
 	os.Exit(m.Run())
 }
@@ -28,16 +27,9 @@ func ResetDB() {
 	mocks.ResetDB(db)
 }
 
-func SetupServiceUnitTests(t *testing.T) {
-	testService = service.NewSubscriptionService(mocks.NewMockSubscriptionRepository())
-}
-
-func SetupServiceIntegrationTests(t *testing.T) {
-	testService = service.NewSubscriptionService(testRepository)
-}
-
 func SetupRepo(t *testing.T) {
 	db = mocks.NewTestDB()
 	testRepository = repository.NewSubscriptionRepositiry(db)
+	testService = service.NewSubscriptionService(testRepository)
 	ResetDB()
 }

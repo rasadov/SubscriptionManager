@@ -11,8 +11,8 @@ import (
 )
 
 func NewTestDB() *gorm.DB {
-	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{
-		Logger: logger.Default.LogMode(logger.Info),
+	db, err := gorm.Open(sqlite.Open("file::memory:?cache=shared"), &gorm.Config{
+		Logger: logger.Default.LogMode(logger.Silent),
 	})
 	if err != nil {
 		log.Fatal("failed to connect to test database:", err)
@@ -35,14 +35,8 @@ func Close(db *gorm.DB) error {
 }
 
 func ResetDB(db *gorm.DB) error {
-	log.Println("Resetting test database...")
 	if db == nil {
 		return nil
 	}
-	err := db.Migrator().DropTable(&models.Subscription{})
-	if err != nil {
-		return err
-	}
-	err = db.AutoMigrate(&models.Subscription{})
-	return err
+	return db.Exec("DELETE FROM subscriptions").Error
 }
