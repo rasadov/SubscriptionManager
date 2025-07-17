@@ -13,12 +13,14 @@ import (
 )
 
 func createTestSubscription(serviceName, userID, startDate, endDate string, price int64) *models.Subscription {
+	startDateParsed, _ := time.Parse("01-2006", startDate)
+	endDateParsed, _ := time.Parse("01-2006", endDate)
 	return &models.Subscription{
 		ServiceName: serviceName,
 		Price:       price,
 		UserID:      userID,
-		StartDate:   startDate,
-		EndDate:     endDate,
+		StartDate:   startDateParsed,
+		EndDate:     &endDateParsed,
 		CreatedAt:   time.Now(),
 		UpdatedAt:   time.Now(),
 	}
@@ -177,7 +179,7 @@ func TestListSubscriptions_FilterByUserID(t *testing.T) {
 	result, total, err := testRepository.ListSubscriptions(context.Background(), query)
 
 	assert.NoError(t, err)
-	assert.Equal(t, int64(5), total)
+	assert.Equal(t, int64(3), total)
 	for _, sub := range result {
 		assert.Equal(t, userID, sub.UserID)
 	}
@@ -197,7 +199,7 @@ func TestListSubscriptions_FilterByServiceName(t *testing.T) {
 	result, total, err := testRepository.ListSubscriptions(context.Background(), query)
 
 	assert.NoError(t, err)
-	assert.Equal(t, int64(5), total)
+	assert.Equal(t, int64(2), total)
 	for _, sub := range result {
 		assert.Equal(t, serviceName, sub.ServiceName)
 	}
@@ -219,7 +221,7 @@ func TestListSubscriptions_MultipleFilters(t *testing.T) {
 	result, total, err := testRepository.ListSubscriptions(context.Background(), query)
 
 	assert.NoError(t, err)
-	assert.Equal(t, int64(5), total)
+	assert.Equal(t, int64(1), total)
 	assert.Len(t, result, 1)
 	assert.Equal(t, userID, result[0].UserID)
 	assert.Equal(t, serviceName, result[0].ServiceName)
@@ -230,6 +232,7 @@ func TestListSubscriptions_DateFilters(t *testing.T) {
 	seedTestSubscriptions(t)
 
 	startDateFrom := "02-2025"
+	startDateFromParsed, _ := time.Parse("01-2006", startDateFrom)
 	query := dto.ListSubscriptionsQuery{
 		StartDateFrom: &startDateFrom,
 		Page:          1,
@@ -241,7 +244,7 @@ func TestListSubscriptions_DateFilters(t *testing.T) {
 	assert.NoError(t, err)
 	assert.True(t, total >= 1)
 	for _, sub := range result {
-		assert.GreaterOrEqual(t, sub.StartDate, startDateFrom)
+		assert.True(t, sub.StartDate.After(startDateFromParsed) || sub.StartDate.Equal(startDateFromParsed))
 	}
 }
 

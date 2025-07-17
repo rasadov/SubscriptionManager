@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"time"
 
 	"github.com/rasadov/subscription-manager/internal/dto"
 	"github.com/rasadov/subscription-manager/internal/models"
@@ -9,9 +10,9 @@ import (
 )
 
 type SubscriptionService interface {
-	CreateSubscription(ctx context.Context, req dto.CreateSubscriptionRequest) (*models.Subscription, error)
-	GetSubscription(ctx context.Context, id int) (*models.Subscription, error)
-	UpdateSubscription(ctx context.Context, id int, req dto.UpdateSubscriptionRequest) (*models.Subscription, error)
+	CreateSubscription(ctx context.Context, req dto.CreateSubscriptionRequest) (*dto.SubscriptionResponse, error)
+	GetSubscription(ctx context.Context, id int) (*dto.SubscriptionResponse, error)
+	UpdateSubscription(ctx context.Context, id int, req dto.UpdateSubscriptionRequest) (*dto.SubscriptionResponse, error)
 	DeleteSubscription(ctx context.Context, id int) error
 	ListSubscriptions(ctx context.Context, query dto.ListSubscriptionsQuery) (*dto.ListSubscriptionsResponse, error)
 	CalculateTotalCost(ctx context.Context, query dto.TotalCostQuery) (*dto.TotalCostResponse, error)
@@ -25,32 +26,44 @@ func NewSubscriptionService(repo repository.SubscriptionRepository) Subscription
 	return &subscriptionService{repo: repo}
 }
 
-func (s *subscriptionService) CreateSubscription(ctx context.Context, req dto.CreateSubscriptionRequest) (*models.Subscription, error) {
+func (s *subscriptionService) CreateSubscription(ctx context.Context, req dto.CreateSubscriptionRequest) (*dto.SubscriptionResponse, error) {
+	startDate, err := time.Parse("01-2006", req.StartDate)
+	if err != nil {
+		return nil, err
+	}
+	var endDatePtr *time.Time
+	if req.EndDate != "" {
+		endDate, err := time.Parse("01-2006", req.EndDate)
+		if err != nil {
+			return nil, err
+		}
+		endDatePtr = &endDate
+	}
 	subscription := models.Subscription{
 		ServiceName: req.ServiceName,
 		Price:       req.Price,
 		UserID:      req.UserID,
-		StartDate:   req.StartDate,
-		EndDate:     req.EndDate,
+		StartDate:   startDate,
+		EndDate:     endDatePtr,
 	}
 
 	if err := s.repo.CreateSubscription(ctx, &subscription); err != nil {
 		return nil, err
 	}
 
-	return &subscription, nil
+	return dto.NewSubscriptionResponse(&subscription), nil
 }
 
-func (s *subscriptionService) GetSubscription(ctx context.Context, id int) (*models.Subscription, error) {
+func (s *subscriptionService) GetSubscription(ctx context.Context, id int) (*dto.SubscriptionResponse, error) {
 	subscription, err := s.repo.GetSubscription(ctx, id)
 	if err != nil {
 		return nil, err
 	}
 
-	return subscription, nil
+	return dto.NewSubscriptionResponse(subscription), nil
 }
 
-func (s *subscriptionService) UpdateSubscription(ctx context.Context, id int, req dto.UpdateSubscriptionRequest) (*models.Subscription, error) {
+func (s *subscriptionService) UpdateSubscription(ctx context.Context, id int, req dto.UpdateSubscriptionRequest) (*dto.SubscriptionResponse, error) {
 	subscription, err := s.repo.GetSubscription(ctx, id)
 	if err != nil {
 		return nil, err
@@ -65,18 +78,26 @@ func (s *subscriptionService) UpdateSubscription(ctx context.Context, id int, re
 	}
 
 	if req.StartDate != nil {
-		subscription.StartDate = *req.StartDate
+		startDate, err := time.Parse("01-2006", *req.StartDate)
+		if err != nil {
+			return nil, err
+		}
+		subscription.StartDate = startDate
 	}
 
 	if req.EndDate != nil {
-		subscription.EndDate = *req.EndDate
+		endDate, err := time.Parse("01-2006", *req.EndDate)
+		if err != nil {
+			return nil, err
+		}
+		subscription.EndDate = &endDate
 	}
 
 	if err := s.repo.UpdateSubscription(ctx, id, subscription); err != nil {
 		return nil, err
 	}
 
-	return subscription, nil
+	return dto.NewSubscriptionResponse(subscription), nil
 }
 
 func (s *subscriptionService) DeleteSubscription(ctx context.Context, id int) error {
@@ -95,8 +116,13 @@ func (s *subscriptionService) ListSubscriptions(ctx context.Context, query dto.L
 		return nil, err
 	}
 
+	var subscriptionResponses []*dto.SubscriptionResponse
+	for _, subscription := range subscriptions {
+		subscriptionResponses = append(subscriptionResponses, dto.NewSubscriptionResponse(subscription))
+	}
+
 	return &dto.ListSubscriptionsResponse{
-		Data: subscriptions,
+		Data: subscriptionResponses,
 		Pagination: &dto.Pagination{
 			Page:       query.Page,
 			Limit:      query.Limit,

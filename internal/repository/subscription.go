@@ -3,6 +3,8 @@ package repository
 import (
 	"context"
 	"database/sql"
+	"fmt"
+	"time"
 
 	"github.com/rasadov/subscription-manager/internal/dto"
 	"github.com/rasadov/subscription-manager/internal/models"
@@ -56,24 +58,49 @@ func (s *subscriptionRepository) DeleteSubscription(ctx context.Context, id int)
 func (s *subscriptionRepository) ListSubscriptions(ctx context.Context, query dto.ListSubscriptionsQuery) (subscriptions []*models.Subscription, total int64, err error) {
 	db := s.db.WithContext(ctx)
 
-	if err := db.Model(&models.Subscription{}).Count(&total).Error; err != nil {
-		return nil, 0, err
-	}
-
 	if query.UserID != nil {
 		db = db.Where("user_id = ?", *query.UserID)
 	}
+
+	if query.StartDateFrom != nil {
+		startDate, err := time.Parse("01-2006", *query.StartDateFrom)
+		if err != nil {
+			return nil, 0, fmt.Errorf("invalid start_date_from format: %w", err)
+		}
+		db = db.Where("start_date >= ?", startDate)
+	}
+
+	if query.StartDateTo != nil {
+		startDate, err := time.Parse("01-2006", *query.StartDateTo)
+		if err != nil {
+			return nil, 0, fmt.Errorf("invalid start_date_to format: %w", err)
+		}
+		db = db.Where("start_date <= ?", startDate)
+	}
+
+	if query.EndDateFrom != nil {
+		endDate, err := time.Parse(time.RFC3339, *query.EndDateFrom)
+		if err != nil {
+			return nil, 0, fmt.Errorf("invalid end_date_from format: %w", err)
+		}
+		db = db.Where("end_date >= ?", endDate)
+	}
+
+	if query.EndDateTo != nil {
+		endDate, err := time.Parse("01-2006", *query.EndDateTo)
+		if err != nil {
+			return nil, 0, fmt.Errorf("invalid end_date_to format: %w", err)
+		}
+		db = db.Where("end_date <= ?", endDate)
+	}
+
 	if query.ServiceName != nil {
 		db = db.Where("service_name = ?", *query.ServiceName)
 	}
-	if query.StartDateFrom != nil {
-		db = db.Where("start_date >= ?", *query.StartDateFrom)
-	}
-	if query.EndDateFrom != nil {
-		db = db.Where("end_date >= ?", *query.EndDateFrom)
-	}
-	if query.EndDateTo != nil {
-		db = db.Where("end_date <= ?", *query.EndDateTo)
+
+	// Count total records
+	if err := db.Model(&models.Subscription{}).Count(&total).Error; err != nil {
+		return nil, 0, err
 	}
 
 	// Sorting
@@ -118,10 +145,18 @@ func (s *subscriptionRepository) CalculateTotalCost(ctx context.Context, query d
 		db = db.Where("service_name = ?", *query.ServiceName)
 	}
 	if query.StartDate != nil {
-		db = db.Where("start_date >= ?", *query.StartDate)
+		startDate, err := time.Parse("01-2006", *query.StartDate)
+		if err != nil {
+			return nil, fmt.Errorf("invalid start_date format: %w", err)
+		}
+		db = db.Where("start_date >= ?", startDate)
 	}
 	if query.EndDate != nil {
-		db = db.Where("end_date <= ?", *query.EndDate)
+		endDate, err := time.Parse("01-2006", *query.EndDate)
+		if err != nil {
+			return nil, fmt.Errorf("invalid end_date format: %w", err)
+		}
+		db = db.Where("end_date <= ?", endDate)
 	}
 
 	var totalCostNull sql.NullInt64

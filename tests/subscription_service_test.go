@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/rasadov/subscription-manager/internal/dto"
 	"github.com/rasadov/subscription-manager/internal/models"
@@ -34,13 +35,18 @@ func TestCreateSubscriptionService_Success(t *testing.T) {
 
 	result, err := service.CreateSubscription(context.Background(), req)
 
+	startDateParsed, _ := time.Parse("01-2006", req.StartDate)
+	endDateParsed, _ := time.Parse("01-2006", req.EndDate)
+
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
 	assert.Equal(t, req.ServiceName, result.ServiceName)
 	assert.Equal(t, req.Price, result.Price)
 	assert.Equal(t, req.UserID, result.UserID)
-	assert.Equal(t, req.StartDate, result.StartDate)
-	assert.Equal(t, req.EndDate, result.EndDate)
+	assert.Equal(t, startDateParsed, time.Time(result.StartDate))
+	if assert.NotNil(t, result.EndDate) {
+		assert.Equal(t, endDateParsed, time.Time(*result.EndDate))
+	}
 	assert.Equal(t, uint(1), result.ID)
 
 	mockRepo.AssertExpectations(t)
@@ -74,12 +80,16 @@ func TestGetSubscriptionService_Success(t *testing.T) {
 	mockRepo := new(mocks.MockSubscriptionRepository)
 	service := service.NewSubscriptionService(mockRepo)
 
+	startDateParsed, _ := time.Parse("01-2006", "07-2025")
+	endDateParsed, _ := time.Parse("01-2006", "12-2025")
+
 	expectedSub := &models.Subscription{
 		ID:          1,
 		ServiceName: "Netflix",
 		Price:       1500,
 		UserID:      "123e4567-e89b-12d3-a456-426614174000",
-		StartDate:   "07-2025",
+		StartDate:   startDateParsed,
+		EndDate:     &endDateParsed,
 	}
 
 	mockRepo.On("GetSubscription", mock.Anything, 1).Return(expectedSub, nil)
@@ -91,6 +101,10 @@ func TestGetSubscriptionService_Success(t *testing.T) {
 	assert.Equal(t, expectedSub.ID, result.ID)
 	assert.Equal(t, expectedSub.ServiceName, result.ServiceName)
 	assert.Equal(t, expectedSub.Price, result.Price)
+	assert.Equal(t, expectedSub.StartDate, time.Time(result.StartDate))
+	if assert.NotNil(t, result.EndDate) && expectedSub.EndDate != nil {
+		assert.Equal(t, *expectedSub.EndDate, time.Time(*result.EndDate))
+	}
 
 	mockRepo.AssertExpectations(t)
 }
@@ -114,12 +128,14 @@ func TestUpdateSubscriptionService_Success(t *testing.T) {
 	mockRepo := new(mocks.MockSubscriptionRepository)
 	service := service.NewSubscriptionService(mockRepo)
 
+	startDateParsed, _ := time.Parse("01-2006", "07-2025")
+
 	existingSub := &models.Subscription{
 		ID:          1,
 		ServiceName: "Netflix",
 		Price:       1500,
 		UserID:      "123e4567-e89b-12d3-a456-426614174000",
-		StartDate:   "07-2025",
+		StartDate:   startDateParsed,
 	}
 
 	newServiceName := "Spotify"

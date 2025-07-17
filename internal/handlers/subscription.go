@@ -27,7 +27,7 @@ func NewSubscriptionHandler(service service.SubscriptionService, logger *slog.Lo
 // @Accept json
 // @Produce json
 // @Param subscription body dto.CreateSubscriptionRequest true "Subscription details"
-// @Success 201 {object} models.Subscription
+// @Success 201 {object} dto.SubscriptionResponse
 // @Failure 400 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /subscriptions [post]
@@ -58,7 +58,7 @@ func (h *SubscriptionHandler) CreateSubscription(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param id path int true "Subscription ID"
-// @Success 200 {object} models.Subscription
+// @Success 200 {object} dto.SubscriptionResponse
 // @Failure 400 {object} map[string]string
 // @Failure 404 {object} map[string]string
 // @Router /subscriptions/{id} [get]
@@ -90,7 +90,7 @@ func (h *SubscriptionHandler) GetSubscription(c *gin.Context) {
 // @Produce json
 // @Param id path int true "Subscription ID"
 // @Param subscription body dto.UpdateSubscriptionRequest true "Updated subscription details"
-// @Success 200 {object} models.Subscription
+// @Success 200 {object} dto.SubscriptionResponse
 // @Failure 400 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /subscriptions/{id} [put]

@@ -1,6 +1,10 @@
 package dto
 
-import "github.com/rasadov/subscription-manager/internal/models"
+import (
+	"time"
+
+	"github.com/rasadov/subscription-manager/internal/models"
+)
 
 type CreateSubscriptionRequest struct {
 	ServiceName string `json:"service_name" binding:"required"`
@@ -23,10 +27,22 @@ type ListSubscriptionsQuery struct {
 	Page          int64   `form:"page,default=1"`
 	Limit         int64   `form:"limit,default=10"`
 	StartDateFrom *string `form:"start_date_from"`
+	StartDateTo   *string `form:"start_date_to"`
 	EndDateFrom   *string `form:"end_date_from"`
 	EndDateTo     *string `form:"end_date_to"`
 	SortBy        *string `form:"sort_by"`
 	SortOrder     *string `form:"sort_order"`
+}
+
+type SubscriptionResponse struct {
+	ID          uint       `json:"id"`
+	ServiceName string     `json:"service_name"`
+	Price       int64      `json:"price"`
+	UserID      string     `json:"user_id"`
+	StartDate   MonthYear  `json:"start_date"`
+	EndDate     *MonthYear `json:"end_date,omitempty"`
+	CreatedAt   time.Time  `json:"created_at"`
+	UpdatedAt   time.Time  `json:"updated_at"`
 }
 
 type TotalCostQuery struct {
@@ -42,6 +58,25 @@ type TotalCostResponse struct {
 }
 
 type ListSubscriptionsResponse struct {
-	Data       []*models.Subscription `json:"data"`
-	Pagination *Pagination            `json:"pagination"`
+	Data       []*SubscriptionResponse `json:"data"`
+	Pagination *Pagination             `json:"pagination"`
+}
+
+func NewSubscriptionResponse(subscription *models.Subscription) *SubscriptionResponse {
+	var endDate *MonthYear
+	if subscription.EndDate != nil {
+		endDateVal := MonthYear(*subscription.EndDate)
+		endDate = &endDateVal
+	}
+
+	return &SubscriptionResponse{
+		ID:          subscription.ID,
+		ServiceName: subscription.ServiceName,
+		Price:       subscription.Price,
+		UserID:      subscription.UserID,
+		StartDate:   MonthYear(subscription.StartDate),
+		EndDate:     endDate,
+		CreatedAt:   subscription.CreatedAt,
+		UpdatedAt:   subscription.UpdatedAt,
+	}
 }

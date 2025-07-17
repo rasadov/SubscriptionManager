@@ -22,7 +22,7 @@ definitions:
     properties:
       data:
         items:
-          $ref: '#/definitions/github_com_rasadov_subscription-manager_internal_models.Subscription'
+          $ref: '#/definitions/github_com_rasadov_subscription-manager_internal_dto.SubscriptionResponse'
         type: array
       pagination:
         $ref: '#/definitions/github_com_rasadov_subscription-manager_internal_dto.Pagination'
@@ -45,25 +45,7 @@ definitions:
       start_date:
         type: string
     type: object
-  github_com_rasadov_subscription-manager_internal_dto.TotalCostResponse:
-    properties:
-      period:
-        $ref: '#/definitions/github_com_rasadov_subscription-manager_internal_dto.Period'
-      total_cost:
-        type: integer
-    type: object
-  github_com_rasadov_subscription-manager_internal_dto.UpdateSubscriptionRequest:
-    properties:
-      end_date:
-        type: string
-      price:
-        type: integer
-      service_name:
-        type: string
-      start_date:
-        type: string
-    type: object
-  github_com_rasadov_subscription-manager_internal_models.Subscription:
+  github_com_rasadov_subscription-manager_internal_dto.SubscriptionResponse:
     properties:
       created_at:
         type: string
@@ -80,6 +62,24 @@ definitions:
       updated_at:
         type: string
       user_id:
+        type: string
+    type: object
+  github_com_rasadov_subscription-manager_internal_dto.TotalCostResponse:
+    properties:
+      period:
+        $ref: '#/definitions/github_com_rasadov_subscription-manager_internal_dto.Period'
+      total_cost:
+        type: integer
+    type: object
+  github_com_rasadov_subscription-manager_internal_dto.UpdateSubscriptionRequest:
+    properties:
+      end_date:
+        type: string
+      price:
+        type: integer
+      service_name:
+        type: string
+      start_date:
         type: string
     type: object
 host: localhost:8080
@@ -179,7 +179,7 @@ paths:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/github_com_rasadov_subscription-manager_internal_models.Subscription'
+            $ref: '#/definitions/github_com_rasadov_subscription-manager_internal_dto.SubscriptionResponse'
         "400":
           description: Bad Request
           schema:
@@ -242,7 +242,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/github_com_rasadov_subscription-manager_internal_models.Subscription'
+            $ref: '#/definitions/github_com_rasadov_subscription-manager_internal_dto.SubscriptionResponse'
         "400":
           description: Bad Request
           schema:
@@ -280,7 +280,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/github_com_rasadov_subscription-manager_internal_models.Subscription'
+            $ref: '#/definitions/github_com_rasadov_subscription-manager_internal_dto.SubscriptionResponse'
         "400":
           description: Bad Request
           schema:

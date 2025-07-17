@@ -149,7 +149,7 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/github_com_rasadov_subscription-manager_internal_models.Subscription"
+                            "$ref": "#/definitions/github_com_rasadov_subscription-manager_internal_dto.SubscriptionResponse"
                         }
                     },
                     "400": {
@@ -268,7 +268,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_rasadov_subscription-manager_internal_models.Subscription"
+                            "$ref": "#/definitions/github_com_rasadov_subscription-manager_internal_dto.SubscriptionResponse"
                         }
                     },
                     "400": {
@@ -325,7 +325,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_rasadov_subscription-manager_internal_models.Subscription"
+                            "$ref": "#/definitions/github_com_rasadov_subscription-manager_internal_dto.SubscriptionResponse"
                         }
                     },
                     "400": {
@@ -428,7 +428,7 @@ const docTemplate = `{
                 "data": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/github_com_rasadov_subscription-manager_internal_models.Subscription"
+                        "$ref": "#/definitions/github_com_rasadov_subscription-manager_internal_dto.SubscriptionResponse"
                     }
                 },
                 "pagination": {
@@ -464,35 +464,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_rasadov_subscription-manager_internal_dto.TotalCostResponse": {
-            "type": "object",
-            "properties": {
-                "period": {
-                    "$ref": "#/definitions/github_com_rasadov_subscription-manager_internal_dto.Period"
-                },
-                "total_cost": {
-                    "type": "integer"
-                }
-            }
-        },
-        "github_com_rasadov_subscription-manager_internal_dto.UpdateSubscriptionRequest": {
-            "type": "object",
-            "properties": {
-                "end_date": {
-                    "type": "string"
-                },
-                "price": {
-                    "type": "integer"
-                },
-                "service_name": {
-                    "type": "string"
-                },
-                "start_date": {
-                    "type": "string"
-                }
-            }
-        },
-        "github_com_rasadov_subscription-manager_internal_models.Subscription": {
+        "github_com_rasadov_subscription-manager_internal_dto.SubscriptionResponse": {
             "type": "object",
             "properties": {
                 "created_at": {
@@ -517,6 +489,34 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "user_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_rasadov_subscription-manager_internal_dto.TotalCostResponse": {
+            "type": "object",
+            "properties": {
+                "period": {
+                    "$ref": "#/definitions/github_com_rasadov_subscription-manager_internal_dto.Period"
+                },
+                "total_cost": {
+                    "type": "integer"
+                }
+            }
+        },
+        "github_com_rasadov_subscription-manager_internal_dto.UpdateSubscriptionRequest": {
+            "type": "object",
+            "properties": {
+                "end_date": {
+                    "type": "string"
+                },
+                "price": {
+                    "type": "integer"
+                },
+                "service_name": {
+                    "type": "string"
+                },
+                "start_date": {
                     "type": "string"
                 }
             }
