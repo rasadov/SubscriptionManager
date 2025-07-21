@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/rasadov/subscription-manager/internal/dto"
+	"github.com/rasadov/subscription-manager/pkg/exceptions"
 	"github.com/rasadov/subscription-manager/internal/models"
 	"github.com/rasadov/subscription-manager/internal/service"
 	"github.com/rasadov/subscription-manager/tests/mocks"
@@ -16,7 +17,7 @@ import (
 )
 
 func TestCreateSubscriptionService_Success(t *testing.T) {
-	mockRepo := new(mocks.MockSubscriptionRepository)
+	mockRepo := new(mocks.SubscriptionRepository)
 	service := service.NewSubscriptionService(mockRepo)
 
 	req := dto.CreateSubscriptionRequest{
@@ -53,7 +54,7 @@ func TestCreateSubscriptionService_Success(t *testing.T) {
 }
 
 func TestCreateSubscriptionService_RepositoryError(t *testing.T) {
-	mockRepo := new(mocks.MockSubscriptionRepository)
+	mockRepo := new(mocks.SubscriptionRepository)
 	service := service.NewSubscriptionService(mockRepo)
 
 	req := dto.CreateSubscriptionRequest{
@@ -71,13 +72,14 @@ func TestCreateSubscriptionService_RepositoryError(t *testing.T) {
 
 	assert.Error(t, err)
 	assert.Nil(t, result)
-	assert.Equal(t, expectedError, err)
+	assert.Implements(t, (*exceptions.HTTPError)(nil), err)
+	assert.Contains(t, err.Error(), expectedError.Error())
 
 	mockRepo.AssertExpectations(t)
 }
 
 func TestGetSubscriptionService_Success(t *testing.T) {
-	mockRepo := new(mocks.MockSubscriptionRepository)
+	mockRepo := new(mocks.SubscriptionRepository)
 	service := service.NewSubscriptionService(mockRepo)
 
 	startDateParsed, _ := time.Parse("01-2006", "07-2025")
@@ -110,7 +112,7 @@ func TestGetSubscriptionService_Success(t *testing.T) {
 }
 
 func TestGetSubscriptionService_NotFound(t *testing.T) {
-	mockRepo := new(mocks.MockSubscriptionRepository)
+	mockRepo := new(mocks.SubscriptionRepository)
 	service := service.NewSubscriptionService(mockRepo)
 
 	mockRepo.On("GetSubscription", mock.Anything, 999).Return(nil, gorm.ErrRecordNotFound)
@@ -119,13 +121,14 @@ func TestGetSubscriptionService_NotFound(t *testing.T) {
 
 	assert.Error(t, err)
 	assert.Nil(t, result)
-	assert.Equal(t, gorm.ErrRecordNotFound, err)
+	assert.Implements(t, (*exceptions.HTTPError)(nil), err)
+	assert.Contains(t, err.Error(), gorm.ErrRecordNotFound.Error())
 
 	mockRepo.AssertExpectations(t)
 }
 
 func TestUpdateSubscriptionService_Success(t *testing.T) {
-	mockRepo := new(mocks.MockSubscriptionRepository)
+	mockRepo := new(mocks.SubscriptionRepository)
 	service := service.NewSubscriptionService(mockRepo)
 
 	startDateParsed, _ := time.Parse("01-2006", "07-2025")
@@ -161,7 +164,7 @@ func TestUpdateSubscriptionService_Success(t *testing.T) {
 }
 
 func TestListSubscriptionsService_Success(t *testing.T) {
-	mockRepo := new(mocks.MockSubscriptionRepository)
+	mockRepo := new(mocks.SubscriptionRepository)
 	service := service.NewSubscriptionService(mockRepo)
 
 	expectedSubs := []*models.Subscription{
@@ -174,23 +177,36 @@ func TestListSubscriptionsService_Success(t *testing.T) {
 		Limit: 10,
 	}
 
-	mockRepo.On("ListSubscriptions", mock.Anything, query).Return(expectedSubs, int64(2), nil)
+	mockRepo.On(
+		"ListSubscriptions",
+		mock.Anything,           // ctx
+		query.Page,                // page
+		query.Limit,              // elements
+		(*string)(nil),          // userID
+		(*string)(nil),          // serviceName
+		(*time.Time)(nil),       // startDateFrom
+		(*time.Time)(nil),       // startDateTo
+		(*time.Time)(nil),       // endDateFrom
+		(*time.Time)(nil),       // endDateTo
+		mock.AnythingOfType("*string"), // sortBy
+		mock.AnythingOfType("*string"), // sortOrder
+	).Return(expectedSubs, int64(2), nil)
 
 	result, err := service.ListSubscriptions(context.Background(), query)
 
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
 	assert.Len(t, result.Data, 2)
-	assert.Equal(t, int64(2), result.Pagination.Total)
-	assert.Equal(t, int64(1), result.Pagination.Page)
-	assert.Equal(t, int64(10), result.Pagination.Limit)
-	assert.Equal(t, int64(1), result.Pagination.TotalPages)
+	assert.Equal(t, 2, result.Pagination.Total)
+	assert.Equal(t, 1, result.Pagination.Page)
+	assert.Equal(t, 10, result.Pagination.Limit)
+	assert.Equal(t, 1, result.Pagination.TotalPages)
 
 	mockRepo.AssertExpectations(t)
 }
 
 func TestListSubscriptionsService_DefaultPagination(t *testing.T) {
-	mockRepo := new(mocks.MockSubscriptionRepository)
+	mockRepo := new(mocks.SubscriptionRepository)
 	service := service.NewSubscriptionService(mockRepo)
 
 	query := dto.ListSubscriptionsQuery{}
@@ -199,13 +215,26 @@ func TestListSubscriptionsService_DefaultPagination(t *testing.T) {
 	expectedQuery.Page = 1
 	expectedQuery.Limit = 10
 
-	mockRepo.On("ListSubscriptions", mock.Anything, expectedQuery).Return([]*models.Subscription{}, int64(0), nil)
+	mockRepo.On(
+		"ListSubscriptions",
+		mock.Anything,           // ctx
+		expectedQuery.Page,         // page
+		expectedQuery.Limit,        // elements
+		(*string)(nil),          // userID
+		(*string)(nil),          // serviceName
+		(*time.Time)(nil),       // startDateFrom
+		(*time.Time)(nil),       // startDateTo
+		(*time.Time)(nil),       // endDateFrom
+		(*time.Time)(nil),       // endDateTo
+		mock.AnythingOfType("*string"), // sortBy
+		mock.AnythingOfType("*string"), // sortOrder
+	).Return([]*models.Subscription{}, int64(0), nil)
 
 	result, err := service.ListSubscriptions(context.Background(), query)
 
 	assert.NoError(t, err)
-	assert.Equal(t, int64(1), result.Pagination.Page)
-	assert.Equal(t, int64(10), result.Pagination.Limit)
+	assert.Equal(t, 1, result.Pagination.Page)
+	assert.Equal(t, 10, result.Pagination.Limit)
 
 	mockRepo.AssertExpectations(t)
 }
@@ -272,5 +301,6 @@ func TestFullCRUDIntegration(t *testing.T) {
 
 	_, err = testService.GetSubscription(context.Background(), int(created.ID))
 	assert.Error(t, err)
-	assert.Equal(t, gorm.ErrRecordNotFound, err)
+	assert.Implements(t, (*exceptions.HTTPError)(nil), err)
+assert.Contains(t, err.Error(), gorm.ErrRecordNotFound.Error())
 }

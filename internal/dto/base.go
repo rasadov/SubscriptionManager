@@ -11,10 +11,10 @@ type Period struct {
 }
 
 type Pagination struct {
-	Page       int64 `json:"page"`
-	Limit      int64 `json:"limit"`
-	Total      int64 `json:"total"`
-	TotalPages int64 `json:"total_pages"`
+	Page       int `json:"page"`
+	Limit      int `json:"limit"`
+	Total      int `json:"total"`
+	TotalPages int `json:"total_pages"`
 }
 
 type MonthYear time.Time

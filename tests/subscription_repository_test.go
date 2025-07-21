@@ -5,7 +5,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/rasadov/subscription-manager/internal/dto"
 	"github.com/rasadov/subscription-manager/internal/models"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -153,12 +152,7 @@ func TestListSubscriptions_NoFilters(t *testing.T) {
 	SetupRepo(t)
 	subs := seedTestSubscriptions(t)
 
-	query := dto.ListSubscriptionsQuery{
-		Page:  1,
-		Limit: 10,
-	}
-
-	result, total, err := testRepository.ListSubscriptions(context.Background(), query)
+	result, total, err := testRepository.ListSubscriptions(context.Background(), 1, 10, nil, nil, nil, nil, nil, nil, nil, nil)
 
 	assert.NoError(t, err)
 	assert.Len(t, result, len(subs))
@@ -170,13 +164,8 @@ func TestListSubscriptions_FilterByUserID(t *testing.T) {
 	seedTestSubscriptions(t)
 
 	userID := "user-1"
-	query := dto.ListSubscriptionsQuery{
-		UserID: &userID,
-		Page:   1,
-		Limit:  10,
-	}
 
-	result, total, err := testRepository.ListSubscriptions(context.Background(), query)
+	result, total, err := testRepository.ListSubscriptions(context.Background(), 1, 10, &userID, nil, nil, nil, nil, nil, nil, nil)
 
 	assert.NoError(t, err)
 	assert.Equal(t, int64(3), total)
@@ -190,13 +179,8 @@ func TestListSubscriptions_FilterByServiceName(t *testing.T) {
 	seedTestSubscriptions(t)
 
 	serviceName := "Netflix"
-	query := dto.ListSubscriptionsQuery{
-		ServiceName: &serviceName,
-		Page:        1,
-		Limit:       10,
-	}
 
-	result, total, err := testRepository.ListSubscriptions(context.Background(), query)
+	result, total, err := testRepository.ListSubscriptions(context.Background(), 1, 10, nil, &serviceName, nil, nil, nil, nil, nil, nil)
 
 	assert.NoError(t, err)
 	assert.Equal(t, int64(2), total)
@@ -211,14 +195,8 @@ func TestListSubscriptions_MultipleFilters(t *testing.T) {
 
 	userID := "user-1"
 	serviceName := "Netflix"
-	query := dto.ListSubscriptionsQuery{
-		UserID:      &userID,
-		ServiceName: &serviceName,
-		Page:        1,
-		Limit:       10,
-	}
 
-	result, total, err := testRepository.ListSubscriptions(context.Background(), query)
+	result, total, err := testRepository.ListSubscriptions(context.Background(), 1, 10, &userID, &serviceName, nil, nil, nil, nil, nil, nil)
 
 	assert.NoError(t, err)
 	assert.Equal(t, int64(1), total)
@@ -233,13 +211,8 @@ func TestListSubscriptions_DateFilters(t *testing.T) {
 
 	startDateFrom := "02-2025"
 	startDateFromParsed, _ := time.Parse("01-2006", startDateFrom)
-	query := dto.ListSubscriptionsQuery{
-		StartDateFrom: &startDateFrom,
-		Page:          1,
-		Limit:         10,
-	}
 
-	result, total, err := testRepository.ListSubscriptions(context.Background(), query)
+	result, total, err := testRepository.ListSubscriptions(context.Background(), 1, 10, nil, nil, &startDateFromParsed, nil, nil, nil, nil, nil)
 
 	assert.NoError(t, err)
 	assert.True(t, total >= 1)
@@ -252,22 +225,12 @@ func TestListSubscriptions_Pagination(t *testing.T) {
 	SetupRepo(t)
 	seedTestSubscriptions(t)
 
-	query1 := dto.ListSubscriptionsQuery{
-		Page:  1,
-		Limit: 2,
-	}
-
-	result1, total1, err := testRepository.ListSubscriptions(context.Background(), query1)
+	result1, total1, err := testRepository.ListSubscriptions(context.Background(), 1, 2, nil, nil, nil, nil, nil, nil, nil, nil)
 	assert.NoError(t, err)
 	assert.Len(t, result1, 2)
 	assert.Equal(t, int64(5), total1)
 
-	query2 := dto.ListSubscriptionsQuery{
-		Page:  2,
-		Limit: 2,
-	}
-
-	result2, total2, err := testRepository.ListSubscriptions(context.Background(), query2)
+	result2, total2, err := testRepository.ListSubscriptions(context.Background(), 2, 2, nil, nil, nil, nil, nil, nil, nil, nil)
 	assert.NoError(t, err)
 	assert.Len(t, result2, 2)
 	assert.Equal(t, int64(5), total2)
@@ -281,14 +244,8 @@ func TestListSubscriptions_Sorting(t *testing.T) {
 
 	sortBy := "price"
 	sortOrder := "desc"
-	query := dto.ListSubscriptionsQuery{
-		SortBy:    &sortBy,
-		SortOrder: &sortOrder,
-		Page:      1,
-		Limit:     10,
-	}
 
-	result, _, err := testRepository.ListSubscriptions(context.Background(), query)
+	result, _, err := testRepository.ListSubscriptions(context.Background(), 1, 10, nil, nil, nil, nil, nil, nil, &sortBy, &sortOrder)
 
 	assert.NoError(t, err)
 	assert.True(t, len(result) >= 2)
@@ -302,13 +259,8 @@ func TestListSubscriptions_EmptyResult(t *testing.T) {
 	SetupRepo(t)
 
 	nonExistentUser := "non-existent-user"
-	query := dto.ListSubscriptionsQuery{
-		UserID: &nonExistentUser,
-		Page:   1,
-		Limit:  10,
-	}
 
-	result, total, err := testRepository.ListSubscriptions(context.Background(), query)
+	result, total, err := testRepository.ListSubscriptions(context.Background(), 1, 10, &nonExistentUser, nil, nil, nil, nil, nil, nil, nil)
 
 	assert.NoError(t, err)
 	assert.Empty(t, result)
@@ -327,22 +279,14 @@ func TestCalculateTotalCost_Success(t *testing.T) {
 	require.NoError(t, err)
 
 	userID := "user-1"
-	startDate := "01-2025"
-	endDate := "12-2025"
+	startDate, _ := time.Parse("01-2006", "01-2025")
+	endDate, _ := time.Parse("01-2006", "12-2025")
 
-	query := dto.TotalCostQuery{
-		UserID:    &userID,
-		StartDate: &startDate,
-		EndDate:   &endDate,
-	}
-
-	result, err := testRepository.CalculateTotalCost(context.Background(), query)
+	result, err := testRepository.CalculateTotalCost(context.Background(), userID, "", &startDate, &endDate)
 
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
-	assert.Equal(t, int64(2700), result.TotalCost)
-	assert.Equal(t, startDate, *result.Period.StartDate)
-	assert.Equal(t, endDate, *result.Period.EndDate)
+	assert.Equal(t, int64(2700), result)
 }
 
 func TestCalculateTotalCost_FilterByService(t *testing.T) {
@@ -358,41 +302,28 @@ func TestCalculateTotalCost_FilterByService(t *testing.T) {
 
 	userID := "user-1"
 	serviceName := "Netflix"
-	startDate := "01-2025"
-	endDate := "12-2025"
+	startDate, _ := time.Parse("01-2006", "01-2025")
+	endDate, _ := time.Parse("01-2006", "12-2025")
 
-	query := dto.TotalCostQuery{
-		UserID:      &userID,
-		ServiceName: &serviceName,
-		StartDate:   &startDate,
-		EndDate:     &endDate,
-	}
-
-	result, err := testRepository.CalculateTotalCost(context.Background(), query)
+	result, err := testRepository.CalculateTotalCost(context.Background(), userID, serviceName, &startDate, &endDate)
 
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
-	assert.Equal(t, int64(1500), result.TotalCost)
+	assert.Equal(t, int64(1500), result)
 }
 
 func TestCalculateTotalCost_NoMatches(t *testing.T) {
 	SetupRepo(t)
 
 	nonExistentUser := "non-existent-user"
-	startDate := "01-2025"
-	endDate := "12-2025"
+	startDate := time.Now()
+	endDate := time.Now().AddDate(0, 1, 0)
 
-	query := dto.TotalCostQuery{
-		UserID:    &nonExistentUser,
-		StartDate: &startDate,
-		EndDate:   &endDate,
-	}
-
-	result, err := testRepository.CalculateTotalCost(context.Background(), query)
+	result, err := testRepository.CalculateTotalCost(context.Background(), nonExistentUser, "Netflix", &startDate, &endDate)
 
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
-	assert.Equal(t, int64(0), result.TotalCost)
+	assert.Equal(t, int64(0), result)
 }
 
 func TestRepository_ConcurrentAccess(t *testing.T) {
@@ -417,8 +348,7 @@ func TestRepository_ConcurrentAccess(t *testing.T) {
 	<-done
 	<-done
 
-	query := dto.ListSubscriptionsQuery{Page: 1, Limit: 10}
-	result, total, err := testRepository.ListSubscriptions(context.Background(), query)
+	result, total, err := testRepository.ListSubscriptions(context.Background(), 1, 10, nil, nil, nil, nil, nil, nil, nil, nil)
 
 	assert.NoError(t, err)
 	assert.Equal(t, int64(2), total)

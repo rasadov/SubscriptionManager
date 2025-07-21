@@ -24,8 +24,8 @@ type UpdateSubscriptionRequest struct {
 type ListSubscriptionsQuery struct {
 	UserID        *string `form:"user_id"`
 	ServiceName   *string `form:"service_name"`
-	Page          int64   `form:"page,default=1"`
-	Limit         int64   `form:"limit,default=10"`
+	Page          int     `form:"page,default=1"`
+	Limit         int     `form:"limit,default=10"`
 	StartDateFrom *string `form:"start_date_from"`
 	StartDateTo   *string `form:"start_date_to"`
 	EndDateFrom   *string `form:"end_date_from"`

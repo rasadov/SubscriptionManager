@@ -40,10 +40,10 @@ func (h *SubscriptionHandler) CreateSubscription(c *gin.Context) {
 		return
 	}
 
-	response, err := h.service.CreateSubscription(c.Request.Context(), req)
-	if err != nil {
-		h.logger.Error("Failed to create subscription", "error", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create subscription"})
+	response, httpErr := h.service.CreateSubscription(c.Request.Context(), req)
+	if httpErr != nil {
+		h.logger.Error(httpErr.Error(), "error", httpErr)
+		c.JSON(httpErr.Status(), gin.H{"error": httpErr.Error()})
 		return
 	}
 
@@ -71,10 +71,10 @@ func (h *SubscriptionHandler) GetSubscription(c *gin.Context) {
 		return
 	}
 
-	response, err := h.service.GetSubscription(c.Request.Context(), id)
-	if err != nil {
-		h.logger.Error("Failed to get subscription", "id", id, "error", err)
-		c.JSON(http.StatusNotFound, gin.H{"error": "Subscription not found"})
+	response, httpErr := h.service.GetSubscription(c.Request.Context(), id)
+	if httpErr != nil {
+		h.logger.Error(httpErr.Error(), "id", id, "error", httpErr)
+		c.JSON(httpErr.Status(), gin.H{"error": httpErr.Error()})
 		return
 	}
 
@@ -110,10 +110,10 @@ func (h *SubscriptionHandler) UpdateSubscription(c *gin.Context) {
 		return
 	}
 
-	response, err := h.service.UpdateSubscription(c.Request.Context(), id, req)
-	if err != nil {
-		h.logger.Error("Failed to update subscription", "id", id, "error", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update subscription"})
+	response, httpErr := h.service.UpdateSubscription(c.Request.Context(), id, req)
+	if httpErr != nil {
+		h.logger.Error(httpErr.Error(), "id", id, "error", httpErr)
+		c.JSON(httpErr.Status(), gin.H{"error": httpErr.Error()})
 		return
 	}
 
@@ -141,10 +141,10 @@ func (h *SubscriptionHandler) DeleteSubscription(c *gin.Context) {
 		return
 	}
 
-	err = h.service.DeleteSubscription(c.Request.Context(), id)
-	if err != nil {
-		h.logger.Error("Failed to delete subscription", "id", id, "error", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete subscription"})
+	httpErr := h.service.DeleteSubscription(c.Request.Context(), id)
+	if httpErr != nil {
+		h.logger.Error(httpErr.Error(), "id", id, "error", httpErr)
+		c.JSON(httpErr.Status(), gin.H{"error": httpErr.Error()})
 		return
 	}
 
@@ -181,8 +181,8 @@ func (h *SubscriptionHandler) ListSubscriptions(c *gin.Context) {
 
 	response, err := h.service.ListSubscriptions(c.Request.Context(), query)
 	if err != nil {
-		h.logger.Error("Failed to list subscriptions", "error", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to list subscriptions"})
+		h.logger.Error(err.Error(), "error", err)
+		c.JSON(err.Status(), gin.H{"error": err.Error()})
 		return
 	}
 
@@ -212,10 +212,10 @@ func (h *SubscriptionHandler) CalculateTotalCost(c *gin.Context) {
 		return
 	}
 
-	response, err := h.service.CalculateTotalCost(c.Request.Context(), query)
-	if err != nil {
-		h.logger.Error("Failed to calculate total cost", "error", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to calculate total cost"})
+	response, httpErr := h.service.CalculateTotalCost(c.Request.Context(), query)
+	if httpErr != nil {
+		h.logger.Error(httpErr.Error(), "error", httpErr)
+		c.JSON(httpErr.Status(), gin.H{"error": httpErr.Error()})
 		return
 	}
 
